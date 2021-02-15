@@ -1,19 +1,36 @@
 from flask import Flask, request, render_template, redirect, flash, jsonify
-# debug toolbar
-from flask_debugtoolbar import DebugToolbarExtension
+# # debug toolbar
+# from flask_debugtoolbar import DebugToolbarExtension
 
 from surveys import Question, Survey, satisfaction_survey
+
 app = Flask(__name__)
 
-# debug toolbar
-app.config['SECRET_KEY'] = "password"
-debug = DebugToolbarExtension(app)
+# # debug toolbar
+# app.config['SECRET_KEY'] = "password"
+# debug = DebugToolbarExtension(app)
+# app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 
 
 # survey title
 title = satisfaction_survey.title
+# A list is used for the question counter instead of a primitive integer because the counter
+#  requires an updates in the answer route to advance to the next question. A global primitive
+#  can get referenced but it cannot change.
+# The work-around is to convert question_nbr_current from a primitive to a list because list
+#  elements ARE alterable -- heck, we can add answers to responses!
 question_nbr_current = [0]
+
+# responses list to hold the answers to the survey questions.
 responses = []
+
+
+def survey_reset_controls():
+    """ function resets survey control variables """
+    question_nbr_current[0] = 0
+
+    # responses list to hold the answers to the survey questions.
+    responses.clear()
 
 
 @app.route("/")
@@ -30,8 +47,10 @@ def survey_welcome():
                            survey_instructions=instructions)
 
 
-@app.route("/questions/<question_nbr>")
-def survey_questions(question_nbr):
+# @app.route("/questions/<question_nbr>")
+# def survey_questions(question_nbr):
+@app.route("/questions")
+def survey_questions():
     """ Handles a survey questions. The question number is passed 
         in as a variable name in the route.
 
@@ -46,7 +65,12 @@ def survey_questions(question_nbr):
 
     """
 
-    # do you want to use the number from the route or an internal counter?
+    # The survey question number was passed in as a parameter but right from
+    #  inception of the code, a global counter was used instead of passing in
+    #  a question number.
+    # Unfortunately, too much time was lost trying to figure out why the counter
+    #  could not get updated and references to typically failed in the answer
+    #  route. Not happy . . the time is gone.
 
     title = satisfaction_survey.title
     question_text = satisfaction_survey.questions[question_nbr_current[0]].question
@@ -60,13 +84,9 @@ def survey_questions(question_nbr):
             answer, f"{idx}_{answer.replace(' ', '-')}"))
         idx = idx + 1
 
-    print(f"question_nbr_current={question_nbr_current[0]}", flush=True)
-    print(f"survey_title={title}", flush=True)
-    print(f"question_text={question_text}", flush=True)
-    print(
-        f"satisfaction_survey.questions={satisfaction_survey.questions[question_nbr_current[0]]}", flush=True)
-    print(f"answers={answers}", flush=True)
-
+    # render the questions page. Note that within questions.html, the question number
+    #  presented to the respondent is question_nbr_current[0] + 1. The respondent sees
+    #  1 as the first question, not 0.
     return render_template("questions.html", survey_title=title,
                            question_nbr=question_nbr_current[0],
                            question_nbr_max=(
@@ -81,35 +101,57 @@ def survey_answer():
 
     """
 
-    print("\n\n\nresponses:", flush=True)
-    print(responses, flush=True)
-    print("\ntitle", flush=True)
-    print(title, flush=True)
-    print("\nquestion_nbr_current", flush=True)
-    print(question_nbr_current[0], flush=True)
-
-    #print(f"question_nbr_current={question_nbr_current}", flush=True)
-
-    # key = "q-" + question_nbr_current + "-choices"
-    # answer = request.form[key]
+    # question_nbr_current[0] holds the number of the current question.
+    # radio box choices are named q-#-choices where # is the question
+    #  number.
     answer = request.form[f'q-{question_nbr_current[0]}-choices']
-    # answer = request.form["q-0-choices"]
 
     responses.append(answer)
-    print(f"responses={responses}", flush=True)
 
+    # advance to the next question number.
     question_nbr_current[0] = question_nbr_current[0] + 1
 
-    print("\nquestion_nbr_current", flush=True)
-    print(question_nbr_current[0], flush=True)
+    # Is there another question?
+    if (question_nbr_current[0] < len(satisfaction_survey.questions)):
+        return redirect("/questions")
+        # return render_template("answer.html", survey_title=title,
+        #                     question_nbr=question_nbr_current[0],
+        #                     question_answer="temp answer")
+    else:
+        return redirect("/thankyou")
 
-    # print(
-    #     f"question {question_nbr_current} answer: {answer}, responses = {responses}", flush=True)
 
-    # CURRENTQUESTION = CURRENTQUESTION + 1
-    # question_nbr_current = question_nbr_current + 1
+@app.route("/thankyou")
+def survey_thankyou():
+    """ Handles the thank you page for the survey. """
 
-    return redirect(f"/questions/question_nbr_current[0]")
-    # return render_template("answer.html", survey_title=title,
-    #                        question_nbr=question_nbr_current,
-    #                        question_answer=answer)
+    # is this legitimate? Was the survey completed?
+    if ((question_nbr_current[0] == len(satisfaction_survey.questions)) and (len(responses) == len(satisfaction_survey.questions))):
+        questions_answers = "Your responses:<br>"
+        idx = 0
+        for question in satisfaction_survey.questions:
+            questions_answers = f"{questions_answers}{idx + 1}. {question.question}  <strong>{responses[idx]}</strong><br><br>"
+            idx = idx + 1
+
+        return render_template("thank_you.html", survey_title=title,
+                               q_and_a=questions_answers)
+    else:
+        # restart the survey
+        # A lot can happen here. The respondent can also get reset to the next natural question. But for now,
+        #  reset the survey.
+        survey_reset_controls()
+        flash("Some survey shenanigans were detected. Your survey was reset.", "warning")
+        return redirect("/")
+
+
+@app.route("/reset")
+def survey_reset():
+    """ function to reset the survey so there is no need to stop the server for testing """
+
+    survey_reset_controls()
+    # question_nbr_current[0] = 0
+
+    # # responses list to hold the answers to the survey questions.
+    # responses.clear()
+
+    return redirect("/")

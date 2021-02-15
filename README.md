@@ -1,46 +1,36 @@
-# sb_19-01-12_Flask_Intro_Exercises
+# sb_19-03-10_Flask_Tools_Exercise
 
-## Flask Greet and Calc  
+## Flask Survey  
 
 ## Assignment Details
 #### ASSIGNMENT INVOLVED ####:
-- Familiarization with Flask, setup of Flask environment, project setup, git setup.
+- Build a survey application that asks the visitor to answer questions. The visitor automatically advances through the survey as they answer the questions. A thank you page appears when there are no more questions.
 
 
-### Greet ###
-Application file is greet/app.py. Application has 3 possible routes:
+### SURVEY FLOW ###
+The site root page, **/** serves as the Welcome page. The only survey available for now is the Customer Satisfaction Survey. The survey name, Customer Satisfaction Survey, appears on the page as well as the page title. The directions for completing the Customer Satisfaction Survey are from the survey declaration in surveys.py. Pressing Start serves up the first survey question.
 
-**/welcome** 
-- returns "welcome"
-**/welcome/home**
-- returns "welcome home"
-**/welcome/back**
-- returns "welcome back"
+The **/questions** route displays the survey question and the choices to the visitor. The question number and total number of questions appear with the question so the visitor can guage their progress. The route does NOT include the question number, that is, you cannot change the route to /question/4 to get to the fourth question. "Answering the question should fire off a POST request to /answer with the answer the user selected" was taken quite literally and there is no Next button. A click on an answer advances to the next question (actually to the answer processor which redirects to the next question).
 
+When the final question is answered, the visitor is receives a thank you page accomplished by a redirect that exists on the question page. The thank you page includes the questions and responses provided by the visitor. The questions and answers are filtered through **|safe** to ensure that embedded html is not changed to text.
 
-### Calc ###
-Application is file calc/app.py. Calc supports 4 basic arithmetic functions -- add, sub, mult, and div. The required operands are a and b and the operands are passed in with a query string. All operations return a float value. Helpful error messages are displayed when operands are missing, are the incorrect type, and when the arithmetic operation returned an error. 
+The **/thankyou** route includes logic to ensure the survey was completed (next question counter equals total number of questions and number of responses equals total number of questions) before displaying the thank you message. The visitor is automatically redirected to the welcome page to restart the survey when the checks indicate an incomplete survey. 
 
-Two versions of **calc** exist:
-#### Version 1 #### 
-Routes and functions exist for each arithmetic operation. Routes are:
-**/add?a=:a&b=:b** 
-**/sub?a=:a&b=:b**
-**/mult?a=:a&b=:b**
-**/div?a=:a&b=:b**
+Debugging tool declarations remain in app.py and are commented out. A **/reset** route was added to provides a means of resetting the survey control structures without having to recycle the server. 
 
 
-#### Version 2 #### routes:
-One route exists for all four arithmetic operations. The operation is passed into the function with a routes parameter. Routes are:
-**/math/add?a=:a&b=:b**
-**/math/sub?a=:a&b=:b**
-**/math/mult?a=:a&b=:b**
-**/math/div?a=:a&b=:b**
+**DIFFICULTIES**
+I did not realize that global primitives in Python cannot get changed in a function. Unfortunately, it toooook toooooo long to realize this. I thought for sure that was something incorrect with function code and it was odd that it was getting hung up when used in an f-string. 
+
+
+**ENHANCEMENTS**
+- Right from the start, the server logic was set up NOT to use the question number value in the url. That is too easy for the visitor to manipulate and it was quickly dropped . . and then drama because I could not get the counter to advance. The other caveate, for now at least, is the realization that the counter and responses are set up for a single visitor and the assignment directions do indicate that 'sessions' will get impletmented so I hope I am in a good place to retrofit the code to work with sessions.
+- Current question number and total number of questions appear on each question.
+- light JavaScript added to submit the answer when the visitor clicks on an answer.
+- Thank You page includes the questions and the answers provided by the site visitor.
+- **/reset** route to reset the survey control variables. 
 
 
 **TIMING**:
-- 4.5 hours.
+- 9.6 hours (high end for assignment was 8 hours). Again, disappointed because at least 1 - 2 hours were spent trying to figure out why globally declared question_nbr_current was getting rejected when used in an f-string or when altered.  
 
-
-**ENHANCEMENTS**:
-Error detection and handling. A website should provide meaningful messages when errors occur.

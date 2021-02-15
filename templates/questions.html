@@ -7,13 +7,15 @@
 <p><span>Question {{question_nbr + 1}} of {{question_nbr_max}}:</span>{{question_text}}
 </p>
 
-<form action="/answer" method="post">
+<form action="/answer" method="post" id="answer">
     {% for answer, answer_form_ctrl in question_answers %}
     <input type="radio" name="q-{{question_nbr}}-choices" id="{{answer_form_ctrl}}" value="{{answer}}" required>
     <label for="{{answer_form_ctrl}}">{{answer}}</label><br>
     {% endfor %}
-    <button>Next</button>
 </form>
 
+{% endblock %}
 
+{% block scripts %}
+<script src="/static/questions.js"></script>
 {% endblock %}
